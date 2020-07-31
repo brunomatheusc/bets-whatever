@@ -1,0 +1,301 @@
+<section class="container mt-top">
+    <div class="col-md-12">
+        <div class="row">
+            <div class="col-md-12">
+                <h4>Adicionar Jogos</h4>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <button class="btn btn-primary" onclick="listar()">Jogos de Hoje</button>
+                <button class="btn btn-primary" onclick="anterirores()">Anteriores</button>
+            </div>
+        </div>
+
+        <br>
+
+        <div class="row">
+            <div class="col-md-6">
+                <input type="text" class="form-control" name="url" id="url" value="https://totalcorner.com/match/schedule/20190301" placeholder="URL">
+            </div>
+
+            <div class="col-md-2">
+                <select name="opcao" id="opcao" class="form-control">
+                    <option value="0">Adicionar</option>
+                    <option value="1" selected>Update</option>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <input type="text" name="date" id="date" class="form-control" value="2019-03-02">
+            </div>
+
+
+            <div class="col-md-2">
+                <button class="btn btn-primary" id="btnEnviar" onclick="listar($('#url').val());">Enviar</button>
+            </div>
+        </div>
+
+        <br>
+        <hr>
+
+        <div class="row">
+            <div class="col-md-4">
+                <button class="btn btn-primary" id="btnAdicionar" onclick="adicionar('/game/add-games', 0)">Adicionar</button>
+            </div>
+        </div>
+        
+        <br>
+
+        <table id="inplay_match_table" style="display: none;">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+
+        <table class="table">
+            <thead class="thead-dark">
+                <tr>
+                    <th>ID Liga</th>
+                    <th>Liga</th>
+                    <th>Hora</th>
+                    <th>Tempo</th>
+                    <th>Casa</th>
+                    <th>Visitante</th>
+                    <th>ID Jogo</th>
+                </tr>
+            </thead>
+
+            <tbody id="tbdJogos">
+
+            </tbody>
+        </table>
+
+        <div class="row">
+            <table class="table" id="today" style="display:none;">
+                <thead>
+                    <tr>
+                        <td>ID</td>
+                        <td>Liga</td>
+                        <td>Home</td>
+                        <td>Away</td>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script src="/js/funcoes.js?v-<?= uniqid();?>"></script>
+
+<script type="text/javascript">
+    var date;
+
+    function listar(url = ""){
+        $("#inplay_match_table").empty();
+        $("#tbdJogos").empty();
+        $("#btnEnviar").attr("disabled", true);
+
+        var table = "<tbody id='tbd_match'>";
+
+        "<?php header('Access-Control-Allow-Origin: *'); ?>";
+
+        url = (url == "") ? "https://www.totalcorner.com/match/today" : url;
+
+        $.ajax({
+            type: 'get',
+            url: url,
+            // url: 'https://totalcorner.com/match/schedule/',
+            // url: 'https://www.totalcorner.com/match/today',
+            // url: "https://lv.scorebing.com/",
+            cache: false,
+            headers: {"Access-Control-Allow-Origin": "*"},
+            crossOrigin: null,
+            crossDomain: true,
+            success: function(data){
+                var data1 = data.split('tbody_match">');
+                var data2 = data1[1].split("</tbody>");
+                table += data2[0] + "</tbody>";
+
+                $("#inplay_match_table").append(table);
+                inicializarJogos();
+                $("#btnEnviar").attr("disabled", false)
+            },
+            error: function(error){
+                console.log(error);
+            }
+        });
+    }
+
+    function anterirores(){
+        var d = new Date(), date = "", url = "", ano, mes, dia;
+
+        ano = d.getFullYear().toString();
+        mes = d.getMonth() + 1;
+        dia = d.getDate()-1;
+
+        url = ano + ((mes > 10) ? mes : ("0" + mes)) + ((dia > 10) ? dia : ("0" + dia));
+        date = ano + "-" + ((mes > 10) ? mes : ("0" + mes)) + "-" + ((dia > 10) ? dia : ("0" + dia));
+
+        $("#date").val(date);
+
+        // listar("https://totalcorner.com/match/schedule/" + url);
+
+        return "https://totalcorner.com/match/schedule/" + url;
+    }
+
+    function inicializarJogos(){
+        // games = setJogos();
+        games = setJogosFull();
+        setTable(games);
+        // console.log(jogos.find(j => j.id == 78672115));
+        // console.log(jogos.findIndex(j => j.id == 78672115));
+    }
+
+    function setJogos(){
+        var jogos = [];
+
+        var liga      = $(".td_league"),
+            tempo     = $(".match_status"),
+            casa      = $(".match_home"),
+            visitante = $(".match_away"),
+            links     = $(".td_analysis"),
+            tr        = $("#tbd_match > tr");
+
+        for (i=0; i<liga.length; i++){
+            if ($(tempo[i]).text().trim() == ""){
+                var hora = $(tr[i]).children('td')[2];
+
+                var a = $(links[i]).children('a').get(0);
+                    id = $(a).attr('href').split('/')[3].trim();
+
+                var id_home = $(casa[i]).children('a').attr('href').split('/')[3],
+                    id_away = $(visitante[i]).children('a').attr('href').split('/')[3],
+                    id_liga = $(liga[i]).children('div').children('a').attr('href').split('/')[3];
+
+                var home = $(casa[i]).text().trim().split(/[\[\]\d]+/), away = $(visitante[i]).text().trim().split(/[\[\]\d]+/);
+
+                jogos.push({
+                    liga:      $(liga[i]).text().trim(),
+                    hora:      $(hora).text().trim(),
+                    casa:      (home[0] == "") ? home[1] : home[0],
+                    visitante: (away[0] == "") ? away[1] : away[0],
+                    game:      id,
+                    idhome:    id_home,
+                    idaway:    id_away,
+                    idliga:    id_liga,
+                });
+            }
+        }
+
+        return jogos;
+    }
+
+    function setTable(jogos) {
+        var html = "";
+
+        console.log(jogos);
+
+        for(i=0; i<jogos.length; i++){
+            id = jogos[i].game;
+
+            html +=
+            "<tr>" +
+                "<td>" + jogos[i].idliga + "</td/>" +
+                "<td>" + jogos[i].liga + "</td/>" +
+                "<td id='time" + id + "'>" + jogos[i].hora + "</td/>" +
+                "<td>" + jogos[i].tempo + "</td/>" +
+                "<td>" + jogos[i].casa + "</td/>" +
+                "<td>" + jogos[i].visitante + "</td/>" +
+                "<td>" + jogos[i].game + "</td/>" +
+            "</tr>";
+        }
+
+        $("#tbdJogos").append(html);
+    }
+
+    function adicionar(){
+        // var games = (type == 0) ? setJogos() : setJogosFull();
+        var games = setJogosFull();
+        var i = 0, tam = games.length, teto = 120, resto, opcao = $("#opcao").val();
+        var url = (opcao == 0) ? "/game/add-games" : "/game/update";
+        $("#btnAdicionar").attr("disabled", true);
+
+        $.ajax({
+            type: 'post',
+            data: {
+                jogos: games,
+                // data: $("#date").val(),
+            },
+            url: url,
+            async: false,
+            success: function(retorno){
+                alert("Deu bom");
+                console.log(retorno);
+            }, 
+            error: function(error){
+                alert(error.responseText);
+            }
+        });
+
+        $("#btnAdicionar").attr("disabled", false);
+
+        return true;
+
+
+        for (i=0; i<games.length; i++){
+            // $.ajax({
+            //     type: 'post',
+            //     data: {
+            //         jogos: games,
+            //         data: $("#date").val(),
+            //     },
+            //     url: url,
+            //     async: false,
+            //     success: function(retorno){
+            //         console.log(retorno);
+            //     }
+            // });
+
+            $.post(url, {
+                jogos: games[i],
+                data: $("#date").val(),
+            }, function(retorno){
+                console.log(retorno);
+            })
+        }
+
+        // while (i < (tam-1)){
+        //     $.post(url, {
+        //         jogos: games.slice(i, teto),
+        //         data: $("#date").val(),
+        //     }, function(retorno){
+        //         console.log(retorno);
+        //     })
+
+        //     i = teto;
+        //     resto = tam - teto;
+        //     teto = (resto > 120) ? (tam - (tam % teto)) : tam; 
+        // }
+
+        return true;
+    }
+</script>

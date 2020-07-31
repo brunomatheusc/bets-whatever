@@ -1,0 +1,65 @@
+<div class="jumbotron">
+    <h1 class="text-center">Welcome to Corno Stats</h1>
+    <p class="text-center">O seu portal de estatísticas!</p>
+</div>
+
+<div class="row">
+    <div class="col-md-12">                    
+        <br/>
+
+        <h4 class="text-center">Jogos de Hoje</h4>
+
+        <br/>
+
+        <div class="row">
+            <table id="inplay_match_table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>
+        </div>
+
+        <div class="row">
+            <table class="table">
+                <thead class="thead-dark">
+                    <tr>
+                        <th>Liga</th>
+                        <th>Data</th>
+                        <th>Casa</th>
+                        <th>Visitante</th>
+                        <th>ID Jogo</th>
+                    </tr>
+                </thead>
+    
+                <tbody id="tbdJogos">
+                <?php foreach($dados as $d){ ?>
+                    <tr>
+                        <td><?= $d['liga']; ?></td>
+                        <td><?= strftime("%d/%m/%Y %H:%M", strtotime($d['date'])); ?></td>
+                        <td><?= $d['casa']; ?></td>
+                        <td><?= $d['visitante']; ?></td>
+                        <td><?= $d['game']; ?></td>
+                    </tr>                    
+                <?php } ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

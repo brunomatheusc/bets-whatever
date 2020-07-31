@@ -1,0 +1,290 @@
+<section class="container">
+    <div class="col-md-12 m-10">
+        <div class="row">
+            <div class="col-md-4">
+                <h4 class="text-left">Selecionar Ligas</h4>
+                <select class="form-control" name="ligas" id="ligas">
+                    <option value="0">Todos</option>
+                <?php foreach($ligas as $l) { ?>
+                    <option value="<?= $l['id']; ?>"><?= $l['name']; ?></option>
+                <?php } ?>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <h4 class="text-left">Times</h4>
+                <select class="form-control" name="times" id="times">
+                    <option value="0">Todos</option>
+                <?php foreach($times as $t) { ?>
+                    <option value="<?= $t['idteam']; ?>"><?= $t['time']; ?></option>
+                <?php } ?>
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <h4>&nbsp;</h4>    
+                <button class="btn btn-primary" id="btnBuscar" onclick="buscar()">Buscar</button>
+            </div>
+
+            <div class="col-md-2">
+                <h4>&nbsp;</h4>    
+                <button class="btn btn-primary" id="btnEnviar" onclick="enviar()">Enviar</button>
+            </div>
+        </div>
+
+        <div class="row">
+            <table id="inplay_match_table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                        <th></th>
+                    </tr>
+                </thead>
+            </table>  
+            
+            <div id="match_title_div" style="display: none;">
+
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <br><br>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID Jogo</th>
+                            <th>Liga</th>
+                            <th>Data</th>
+                            <th>Casa</th>
+                            <th>Placar</th>
+                            <th>Visitante</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tbdJogos">
+                        <tr id="tr1">
+                            <td class="id"></td>
+                            <td class="liga"></td>
+                            <td class="data"></td>
+                            <td class="casa"></td>
+                            <td class="placar"></td>
+                            <td class="visitante"></td>
+                        </tr>                    
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="/js/funcoes.js"></script>
+
+<script type="text/javascript">
+    var jogos = [];
+    $("#ligas").change(function(){
+        var liga = $("#ligas").val();
+
+        $.post('times', {
+            liga: liga,
+        }, function(retorno){
+            var html = "", times = retorno.times;
+            $("#times").empty();
+
+            for(i=0; i<times.length; i++){
+                html += "<option value='" + times[i].idteam + "'>" + times[i].time + "</option>"
+            }
+
+            $("#times").append(html);
+        });
+    });
+
+    function buscar(){
+        var time = $("#times").val();
+        $("#btnBuscar").attr("disabled", true);
+
+        if (time == 0){
+            return false;
+        }
+
+        $("#inplay_match_table").empty();
+        $("#tbdJogos").empty();
+
+        var table = "<tbody id='tbody_match'>";
+
+        $.ajax({
+            type: 'get',
+            url: "https://totalcorner.com/team/view/" + time,
+            cache: false,
+            headers: {"Access-Control-Allow-Origin": "*"},
+            crossOrigin: null,
+            crossDomain: true,
+            success: function(data){
+                var data1 = data.split('tbody_match">');
+                var data2 = data1[1].split("</tbody>");
+                table += data2[0] + "</tbody>";
+
+                $("#inplay_match_table").append(table);
+                inicializarJogos();
+                $("#btnBuscar").attr("disabled", false);
+            },
+            error: function(error){
+                console.log(error);
+            }
+        });
+    }
+
+    function enviar(){
+        var datas = [];
+        $("#btnEnviar").attr("disabled", true);
+
+        for (i=0; i<jogos.length; i++){
+            var game = jogos[i].game;
+
+            // var response = 
+            $.ajax({
+                type: 'get',
+                url: "https://totalcorner.com/match/corner-stats/" + game,
+                // url: "https://totalcorner.com/match/corner-stats/79215018",
+                cache: false,
+                headers: {"Access-Control-Allow-Origin": "*"},
+                crossOrigin: null,
+                crossDomain: true,
+                async: false,
+                success: function(data){
+                    $("#match_title_div").empty();
+
+                    var data1 = data.split('id="match_title_div" class="pull-left ">');
+                    var data2 = data1[1].split('<span id="span_match_id"');
+
+                    console.log(data2[1]);
+
+                    $("#match_title_div").append(data2[0]);
+                    var date = $("#match_title_div > h1").children('small').text().trim().split(' ')[0];
+                    // datas.push({data: date, id: game});
+                    jogos[i].data = date + " " + jogos[i].hora;
+                    $("#btnEnviar").attr("disabled", true);
+                },
+                error: function(error){
+                    console.log(error);
+                }
+            });//.responseText; 
+        }
+
+        $.ajax({
+            type: 'post',
+            url: '/game/update',
+            data: {
+                jogos: jogos,
+            }, 
+            async: false,
+            success: function(retorno){
+                console.log("Deu bom");
+            },
+            error: function(error){
+                console.log(error);
+            }
+        });
+
+        console.log(jogos);
+    }
+
+    function setJogos(){
+        jogos = [];
+        var d = new Date(), date = "", ano, mes, dia;
+
+        ano = d.getFullYear().toString();
+        mes = d.getMonth() + 1;
+        dia = d.getDate();
+
+        date = ano + "-" + ((mes > 10) ? mes : ("0" + mes)) + "-" + ((dia > 10) ? dia : ("0" + dia));
+
+        var liga, tempo, casa, placar, visitante, cantos, ataques, chutes, links, dados = $("#tbody_match > tr");
+
+        for (i=0; i<dados.length; i++){
+            tempo = $($(dados[i]).children('td')[2]).text().trim();
+
+            if (tempo == "Full"){
+                liga      = $($(dados[i]).children('td')[0]);
+                data      = $($(dados[i]).children('td')[1]).text().trim();
+                casa      = $($(dados[i]).children('td')[3]);
+                visitante = $($(dados[i]).children('td')[5]);
+                placar    = $($(dados[i]).children('td')[4]).text().trim();
+                cantos    = $($(dados[i]).children('td')[7]).text().trim();
+                ataques   = $($(dados[i]).children('td')[12]).text().trim();
+                chutes    = $($(dados[i]).children('td')[13]).text().trim().split('\n')[0];
+                links     = $($(dados[i]).children('td')[15]);
+
+                var split     = cantos.split('\n'),
+                    ft        = split[0].replace(/([\s])/g, ''),
+                    ht        = split[1].replace(/[\(\)]*/g, ''),
+                    cantos_ht = ht.split('-'), 
+                    cantos_ft = ft.split('-');
+                    home      = $(casa).text().trim().split(/[\[\]\d\n]+/), 
+                    away      = $(visitante).text().trim().split(/[\[\]\d\n]+/)
+                    a         = $(links).children('a').get(0);
+                    id        = $(a).attr('href').split('/')[3].trim();
+
+                jogos.push({
+                    liga:       $(liga).text().trim(),
+                    data:       data,
+                    hora:       data.split(' ')[1].trim(),
+                    tempo:      tempo,
+                    casa:       (home[0] == "") ? home[1].trim() : home[0].trim(),
+                    placar:     placar,
+                    visitante:  (away[0] == "") ? away[1].trim() : away[0].trim(),
+                    cantos:     cantos,
+                    ht:         ht,
+                    ft:         (ht != null) ? ft : " - ",
+                    total:      (ft != null) ? (parseInt(cantos_ft[0]) + parseInt(cantos_ft[1])) : (parseInt(cantos_ht[0]) + parseInt(cantos_ht[1])),
+                    ataques:    ataques.split('\n')[0],
+                    attht:      "",
+                    attft:      ataques.split('\n')[0],
+                    chutes:     "",
+                    chutes_ht:  "",
+                    chutes_ft:  "",
+                    game:       id,
+                    idhome:     $(casa).children('a').attr('href').split('/')[3],
+                    idaway:     $(visitante).children('a').attr('href').split('/')[3],
+                    idliga:     $(liga).children('div').children('a').attr('href').split('/')[3],                
+                });
+            }
+        }
+
+        return jogos;
+    }
+
+    function setTable(jogos) {
+        var html = "";
+
+        for(i=0; i<jogos.length; i++){
+            id = jogos[i].game;
+
+            html +=
+            "<tr>" +
+                "<td>" + jogos[i].game + "</td/>" +
+                "<td>" + jogos[i].liga + "</td/>" +
+                "<td id='time" + id + "'>" + jogos[i].data + "</td/>" +
+                "<td>" + jogos[i].casa + "</td/>" +
+                "<td>" + jogos[i].placar + "</td/>" +
+                "<td>" + jogos[i].visitante + "</td/>" +
+            "</tr>";
+        }
+
+        $("#tbdJogos").append(html);
+    }
+</script>
